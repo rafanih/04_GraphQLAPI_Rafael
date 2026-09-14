@@ -7,6 +7,8 @@ const { neon } = require('@neondatabase/serverless');
 
 const sql = neon(process.env.DATABASE_URL);
 
+let resolverCallCount = 0;
+
 const typeDefs = `#graphql
   type Produk {
     id: ID!
@@ -32,6 +34,11 @@ const typeDefs = `#graphql
     products: [Produk!]!
     product(id: ID!): Produk
     reviews: [Ulasan!]!
+    resolverCallCount: Int!
+  }
+
+  type Mutation {
+    resetResolverCallCount: Boolean!
   }
 `;
 
@@ -47,13 +54,27 @@ const resolvers = {
     reviews: async () => {
       return await sql`SELECT * FROM ulasan ORDER BY id`;
     },
+    // Query bantu untuk membaca nilai counter dari luar,
+    // dipanggil terpisah SETELAH query nested dijalankan.
+    resolverCallCount: () => resolverCallCount,
+  },
+
+  Mutation: {
+    // Reset counter ke 0 sebelum memulai percobaan baru,
+    // supaya hasil hitungan tidak menumpuk dari request sebelumnya.
+    resetResolverCallCount: () => {
+      resolverCallCount = 0;
+      return true;
+    },
   },
 
   Produk: {
     createdAt: (parent) => parent.created_at,
-    // Nested resolver: hanya dieksekusi kalau field "ulasan" diminta di query.
-    // Ini yang membuktikan dua tabel benar-benar terhubung lewat GraphQL.
     ulasan: async (parent) => {
+      resolverCallCount++;
+      console.log(
+        `[N+1 TEST] Produk.ulasan dipanggil untuk produk id=${parent.id} (${parent.nama}) — total pemanggilan sejauh ini: ${resolverCallCount}`
+      );
       return await sql`SELECT * FROM ulasan WHERE produk_id = ${parent.id} ORDER BY id`;
     },
   },
@@ -68,24 +89,14 @@ const resolvers = {
   },
 };
 
-// -------------------------------------------------------
-// Setup Apollo Server + Express.
-// Express app itu sendiri adalah function (req, res) => void,
-// jadi Vercel Node.js runtime bisa langsung memakainya sebagai
-// handler serverless function tanpa perlu app.listen().
-// -------------------------------------------------------
 const app = express();
 
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
-  introspection: true, // WAJIB aktif supaya Apollo Sandbox bisa membaca schema
+  introspection: true, 
 });
 
-// Apollo Server v4 butuh di-start (async) sebelum middleware-nya dipakai.
-// Di lingkungan serverless, start() ini cukup dipanggil sekali dan
-// di-cache lewat promise, supaya invocation berikutnya (warm start)
-// tidak start ulang.
 const startPromise = apolloServer.start();
 
 app.use(
