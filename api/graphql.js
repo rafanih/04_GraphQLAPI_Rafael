@@ -39,6 +39,22 @@ const typeDefs = `#graphql
 
   type Mutation {
     resetResolverCallCount: Boolean!
+    createProduct(
+      nama: String!
+      deskripsi: String
+      harga: Float!
+      stok: Int!
+      kategori: String
+    ): Produk!
+    updateProduct(
+      id: ID!
+      nama: String
+      deskripsi: String
+      harga: Float
+      stok: Int
+      kategori: String
+    ): Produk
+    deleteProduct(id: ID!): Boolean!
   }
 `;
 
@@ -54,17 +70,45 @@ const resolvers = {
     reviews: async () => {
       return await sql`SELECT * FROM ulasan ORDER BY id`;
     },
-    // Query bantu untuk membaca nilai counter dari luar,
-    // dipanggil terpisah SETELAH query nested dijalankan.
     resolverCallCount: () => resolverCallCount,
   },
 
   Mutation: {
-    // Reset counter ke 0 sebelum memulai percobaan baru,
-    // supaya hasil hitungan tidak menumpuk dari request sebelumnya.
     resetResolverCallCount: () => {
       resolverCallCount = 0;
       return true;
+    },
+
+    // Menambah produk baru, mengembalikan row yang baru dibuat.
+    createProduct: async (_parent, { nama, deskripsi, harga, stok, kategori }) => {
+      const rows = await sql`
+        INSERT INTO produk (nama, deskripsi, harga, stok, kategori)
+        VALUES (${nama}, ${deskripsi ?? null}, ${harga}, ${stok}, ${kategori ?? null})
+        RETURNING *;
+      `;
+      return rows[0];
+    },
+
+    updateProduct: async (_parent, { id, nama, deskripsi, harga, stok, kategori }) => {
+      const rows = await sql`
+        UPDATE produk SET
+          nama = COALESCE(${nama ?? null}, nama),
+          deskripsi = COALESCE(${deskripsi ?? null}, deskripsi),
+          harga = COALESCE(${harga ?? null}, harga),
+          stok = COALESCE(${stok ?? null}, stok),
+          kategori = COALESCE(${kategori ?? null}, kategori)
+        WHERE id = ${id}
+        RETURNING *;
+      `;
+      return rows[0] || null;
+    },
+
+    // Hapus produk berdasarkan id. Mengembalikan true kalau ada row yang terhapus.
+    deleteProduct: async (_parent, { id }) => {
+      const rows = await sql`
+        DELETE FROM produk WHERE id = ${id} RETURNING id;
+      `;
+      return rows.length > 0;
     },
   },
 
