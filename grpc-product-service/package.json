@@ -1,19 +1,13 @@
 {
-  "name": "grpc-product-service",
+  "name": "product-grpc-service",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "gRPC ProductService - implementasi dari product.proto",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@grpc/grpc-js": "^1.14.5",
-    "@grpc/proto-loader": "^0.8.1",
-    "dotenv": "^18.0.3",
-    "pg": "^8.23.0"
+    "@grpc/grpc-js": "^1.10.9",
+    "@grpc/proto-loader": "^0.7.13"
   }
 }

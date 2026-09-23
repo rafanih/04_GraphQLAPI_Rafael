@@ -1,18 +1,43 @@
 syntax = "proto3";
 
+package product;
+
+// Entitas Product yang menyimpan data barang komoditas.
+// Struktur field disesuaikan dengan type Product pada schema GraphQL (lab 04-05).
 message Product {
-  int32 id = 1;
-  string nama = 2;
-  string deskripsi = 3;
-  float harga = 4;
-  int32 stok = 5;
-  string kategori = 6;
+  string id = 1;
+  string name = 2;
+  double price = 3;
+  int32 stock = 4;
+  string status = 5;
 }
 
-message ProductRequest {
-  int32 id = 1;
+// Request untuk mengambil satu Product berdasarkan id.
+message GetProductRequest {
+  string id = 1;
 }
 
+// Response berisi data Product yang diminta.
+message GetProductResponse {
+  Product product = 1;
+}
+
+// Request untuk mengambil daftar Product.
+message ListProductsRequest {
+  string status = 1;
+}
+
+// Response berisi daftar Product.
+message ListProductsResponse {
+  repeated Product products = 1;
+}
+
+// Service ProductService menyediakan operasi terkait entitas Product,
+// setara dengan Query/Mutation product pada schema GraphQL.
 service ProductService {
-  rpc GetProduct(ProductRequest) returns (Product);
+  // Mengambil satu Product berdasarkan id.
+  rpc GetProduct (GetProductRequest) returns (GetProductResponse);
+
+  // Mengambil daftar Product (opsional difilter berdasarkan status).
+  rpc ListProducts (ListProductsRequest) returns (ListProductsResponse);
 }
