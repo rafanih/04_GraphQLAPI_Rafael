@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+message Product {
+  int32 id = 1;
+  string nama = 2;
+  string deskripsi = 3;
+  float harga = 4;
+  int32 stok = 5;
+  string kategori = 6;
+}
+
+message ProductRequest {
+  int32 id = 1;
+}
+
+service ProductService {
+  rpc GetProduct(ProductRequest) returns (Product);
+}
