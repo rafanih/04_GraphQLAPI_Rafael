@@ -3,9 +3,6 @@ const db = require('./db');
 
 let userOrdersCallTracker = 0;
 
-/**
- * Konversi field price dari string PostgreSQL ke tipe Float/Number
- */
 function normalizeProductRecord(data) {
   if (!data) return null;
   return {
@@ -67,7 +64,13 @@ const resolvers = {
   },
 
   Mutation: {
-    createProduct: async (_, { input }) => {
+    createProduct: async (_, { input }, context) => {
+      if (!context.user) {
+        throw new GraphQLError('Unauthorized: silakan login terlebih dahulu', {
+          extensions: { code: 'UNAUTHENTICATED' },
+        });
+      }
+
       const productStatus = input.status || 'ACTIVE';
       const queryText = `
         INSERT INTO products (name, price, stock, status)
@@ -97,7 +100,6 @@ const resolvers = {
         }
       }
 
-      // Jika tidak ada data yang perlu di-update
       if (updateClauses.length === 0) {
         const currentRecord = await db.query('SELECT * FROM products WHERE id = $1', [id]);
         if (currentRecord.rows.length === 0) {
@@ -130,10 +132,6 @@ const resolvers = {
   User: {
     orders: async (parent) => {
       userOrdersCallTracker += 1;
-      console.log(
-        `[N+1 MONITOR] User.orders dipanggil untuk user_id=${parent.id} — total pemanggilan: ${userOrdersCallTracker}`
-      );
-
       const { rows } = await db.query('SELECT * FROM orders WHERE user_id = $1', [parent.id]);
       return rows;
     },
